@@ -33,12 +33,15 @@ class MainWindow( QtGui.QMainWindow ):
 		self.imageWidget = ImageWidget( configPathStr )
 		self.setCentralWidget( self.imageWidget )
 
+		self.previousPath = os.getenv( "HOME" )
+
 		self.setWindowTitle( "Color Calibrator V2.0" )
 
 	def loadActionCallback( self ):
 
 		loadPathStr = str( QtGui.QFileDialog.getOpenFileName( self, 'Open file', '~', '(*.ini)' ) )
 		if len(loadPathStr) != 0:
+			self.previousPath = loadPathStr
 			self.imageWidget.loadConfig( loadPathStr )
 			print "Load : {}".format( loadPathStr )
 			self.imageWidget.updateUI()
@@ -46,7 +49,7 @@ class MainWindow( QtGui.QMainWindow ):
 
 	def saveActionCallback( self ):
 
-		savePathStr = str( QtGui.QFileDialog.getSaveFileName( self, 'Save file', 'config.ini', '(*.ini)' ) )
+		savePathStr = str( QtGui.QFileDialog.getSaveFileName( self, 'Save file', self.previousPath, '(*.ini)' ) )
 		if len(savePathStr) != 0:
 			self.imageWidget.saveConfig( savePathStr ) 
 			print "Save : {}".format( savePathStr )
@@ -56,6 +59,9 @@ if __name__ == "__main__":
 	app = QtGui.QApplication( sys.argv )
 
 	testConfigPath = "/home/neverholiday/work/ros_ws/src/pyxis/src/config_generator/config.ini"
+
+	# print __path__
+	print os.path.abspath( os.path.curdir )
 	
 	mainWindow = MainWindow(testConfigPath)
 	mainWindow.show()
