@@ -32,6 +32,14 @@ class ImageLabel( QtGui.QLabel ):
 		self.upperBoundArray = np.array( [ 0, 0, 0 ] )
 		self.lowerBoundArray = np.array( [ 0, 0, 0 ] )
 
+		self.__useMask = True
+		self.__resImage = None
+
+		self.record = None
+		self.isRecord = False
+
+		self.__imageShape = None
+
 	def signalCallback( self, data ):
 		
 		self.setImageLabel( data )
@@ -44,15 +52,23 @@ class ImageLabel( QtGui.QLabel ):
 
 		self.getLowerAndUpperBound()
 
-		hsvImage = cv2.cvtColor( image, cv2.COLOR_RGB2HSV )
-		mask = cv2.inRange( hsvImage, self.lowerBoundArray, self.upperBoundArray )
-		resImage = cv2.bitwise_and( image, image, mask=mask )
+		if self.__useMask:
+
+			hsvImage = cv2.cvtColor( image, cv2.COLOR_RGB2HSV )
+			mask = cv2.inRange( hsvImage, self.lowerBoundArray, self.upperBoundArray )
+			self.__resImage = cv2.bitwise_and( image, image, mask=mask )
+		else:
+			self.__resImage = image
+
+		if self.isRecord:
+			self.record.write( self.__resImage )
 
 		#	Get information of image
+		self.__imageShape = image.shape
 		height, width, channel = image.shape
 		bytePerRow = image.strides[ 0 ]
 
-		qImage = QtGui.QImage( resImage.data, width, height, bytePerRow, QtGui.QImage.Format_RGB888 )
+		qImage = QtGui.QImage( self.__resImage.data, width, height, bytePerRow, QtGui.QImage.Format_RGB888 )
 
 		#   create pixmap by QImage object
 		self.pixmap = QtGui.QPixmap( qImage )
@@ -66,6 +82,16 @@ class ImageLabel( QtGui.QLabel ):
 
 		self.lowerBoundArray = np.array( [ hMin, sMin, vMin ] )
 		self.upperBoundArray = np.array( [ hMax, sMax, vMax ] )
+
+	def setFlagMask( self, flag ):
+		self.__useMask = flag
+
+	def setFlagRecord( self, flag ):
+		self.isRecord = flag
+
+	def constructRecorder( self, exportPath ):
+		fourcc = cv2.VideoWriter_fourcc(*'XVID')
+		self.record = cv2.VideoWriter( exportPath, fourcc, 20.0, ( self.__imageShape[1], self.__imageShape[0] ) )
 
 class ImageWidget( QtGui.QWidget ):
 
@@ -87,8 +113,9 @@ class ImageWidget( QtGui.QWidget ):
 		self.submitButton = QtGui.QPushButton( "Submit" )
 		self.submitButton.clicked.connect( self.submitButtonCallback )
 
+		self.imageLabel.setAlignment( QtCore.Qt.AlignCenter )
+
 		self.layout = QtGui.QVBoxLayout()
-		
 		self.layout.addWidget( self.imageLabel )
 		self.layout.addWidget( self.colorComboBox )
 		self.layout.addWidget( self.slider )
